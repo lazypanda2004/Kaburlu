@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "618190322619",
+    "project_id": "kaburlu-a7fa5",
+    "storage_bucket": "kaburlu-a7fa5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:618190322619:android:b41a6b4ca272a1dcb3229e",
+        "android_client_info": {
+          "package_name": "com.example.kaburlu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlpiXDO2gsCjiNhJ2X1TUU6pIz898Tc8Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
