@@ -9,7 +9,7 @@ class cust_textfield extends StatelessWidget {
     super.key,
     required this.hint_text,
     this.obscure_text = false,
-    this.controller,
+    required this.controller,
   });
 
   @override

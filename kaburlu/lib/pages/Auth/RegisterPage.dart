@@ -8,7 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:kaburlu/components/buttons/cust_button.dart';
 import 'package:kaburlu/components/textfield/custom_textfield.dart';
 import 'package:kaburlu/components/buttons/google%20_button.dart';
-import 'package:kaburlu/pages/home_page.dart';
+import 'package:kaburlu/pages/chat/home_page.dart';
 import 'package:kaburlu/services/auth_service.dart';
 import 'package:kaburlu/widgets/userimagepicker.dart';
 
