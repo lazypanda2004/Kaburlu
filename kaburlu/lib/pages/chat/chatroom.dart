@@ -149,6 +149,17 @@ class _ChatroomState extends State<Chatroom> {
     _messageController.clear();
   }
 
+  void _updateReadStatus(DocumentSnapshot document) async {
+    if (document['senderUID'] != _currentUser!.uid && !document['read']) {
+      await _firestore
+          .collection('chats')
+          .doc(widget.chatId)
+          .collection('messages')
+          .doc(document.id)
+          .update({'read': true});
+    }
+  }
+
   Future<void> _deleteMessageForMe(String messageId) async {
     DocumentReference messageRef = _firestore
         .collection('chats')
@@ -314,14 +325,9 @@ class _ChatroomState extends State<Chatroom> {
             Navigator.pop(context);
           },
         ),
-        title: StreamBuilder<DocumentSnapshot>(
-          stream: _firestore
-              .collection('users')
-              .doc(widget.recipientId)
-              .snapshots(),
+        title: FutureBuilder<DocumentSnapshot>(
+          future: _firestore.collection('users').doc(widget.recipientId).get(),
           builder: (context, snapshot) {
-            _updateLastSeen();
-            final mapData = snapshot.data!.data() as Map<String, dynamic>;
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const CupertinoActivityIndicator();
             }
@@ -331,6 +337,8 @@ class _ChatroomState extends State<Chatroom> {
             if (!snapshot.hasData) {
               return const Text('Error');
             }
+            _updateLastSeen();
+            final mapData = snapshot.data!.data() as Map<String, dynamic>;
             bool imageExists = mapData['image_url'] != null;
             if (imageExists) {
               return Row(
@@ -380,29 +388,37 @@ class _ChatroomState extends State<Chatroom> {
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CupertinoActivityIndicator());
+                }
                 if (!snapshot.hasData) {
-                  return const CupertinoActivityIndicator();
+                  return const Text("No messages yet");
                 }
                 final messages = snapshot.data!.docs;
-                for (var message in messages) {
-                  final messageText = message['message'];
-                  final messageSenderId = message['senderUID'];
-                  if (messageSenderId == _currentUser!.uid &&
-                      timestamp != null) {
-                    _smartReply.addMessageToConversationFromLocalUser(
-                        messageText, int.parse(timestamp));
-                  } else {
-                    if (timestamp != null) {
-                      _smartReply.addMessageToConversationFromRemoteUser(
-                          messageSenderId);
-                    }
-                  }
-                }
-                _generateSmartReplies();
+                // for (var message in messages) {
+                //   final messageText = message['message'];
+                //   final messageSenderId = message['senderUID'];
+
+                //   final Timestamp? timestamp = message['timestamp'];
+                //   if (messageSenderId == _currentUser!.uid &&
+                //       timestamp != null) {
+                //     _smartReply.addMessageToConversationFromLocalUser(
+                //         messageText, timestamp.millisecondsSinceEpoch);
+                //   } else {
+                //     if (timestamp != null) {
+                //       _smartReply.addMessageToConversationFromRemoteUser(
+                //           messageText,
+                //           timestamp.microsecondsSinceEpoch,
+                //           messageSenderId);
+                //     }
+                //   }
+                // }
+                // _generateSmartReplies();
                 return ListView.builder(
                   reverse: true,
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
+                    _updateReadStatus(snapshot.data!.docs[index]);
                     return _buildMessageItem(snapshot.data!.docs[index]);
                   },
                 );
