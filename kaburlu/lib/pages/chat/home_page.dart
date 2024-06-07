@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:kaburlu/components/buttons/cust_icon.dart';
@@ -23,11 +24,21 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _emailController = TextEditingController();
   User? _currentUser;
 
+  void setupPushNotifications() async{
+      final fcm = FirebaseMessaging.instance;
+      await fcm.requestPermission();
+      final token = await fcm.getToken();
+       // can store this token in the database
+      print('Token: $token');
+  }
+
   @override
   void initState() {
     super.initState();
     _currentUser = _auth.currentUser;
     _updateLastSeen();
+    setupPushNotifications(); // we don't want to turn init to async so define another function which is async and use it here.
+
   }
 
   void signout() async {

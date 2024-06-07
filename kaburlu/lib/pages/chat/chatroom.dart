@@ -28,6 +28,7 @@ class _ChatroomState extends State<Chatroom> {
   List<String> _smartReplies = [];
   String lastSeen = '';
 
+
   @override
   void initState() {
     super.initState();
