@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:kaburlu/components/buttons/cust_button.dart';
 import 'package:kaburlu/components/buttons/cust_icon.dart';
 import 'package:kaburlu/components/textfield/custom_textfield.dart';
 import 'package:kaburlu/pages/chat/ViewProfile.dart';
 import 'package:kaburlu/pages/chat/chatroom.dart';
 import 'package:kaburlu/pages/profile/profile.dart';
+import 'package:lottie/lottie.dart';
 
 class HomePage extends StatefulWidget {
   static String id = 'home_page';
@@ -26,6 +27,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _currentUser = _auth.currentUser;
+    _updateLastSeen();
   }
 
   void signout() async {
@@ -33,6 +35,12 @@ class _HomePageState extends State<HomePage> {
     if (mounted) {
       Navigator.pop(context);
     }
+  }
+
+  Future<void> _updateLastSeen() async {
+    await _firestore.collection('users').doc(_currentUser!.uid).update({
+      'lastSeen': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<void> _addFriend() async {
@@ -91,8 +99,8 @@ class _HomePageState extends State<HomePage> {
 
   String _getChatId(String userId1, String userId2) {
     return userId1.compareTo(userId2) < 0
-        ? '${userId1}_${userId2}'
-        : '${userId2}_${userId1}';
+        ? '${userId1}_$userId2'
+        : '${userId2}_$userId1';
   }
 
   void _navigateToChatScreen(String friendId, String friendName) {
@@ -128,6 +136,15 @@ class _HomePageState extends State<HomePage> {
           .doc(friendId)
           .get(), // get the user data
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(30),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: CupertinoActivityIndicator(),
+            ),
+          );
+        }
         if (!snapshot.hasData) {
           return const ListTile(title: Text('Data not found'));
         }
@@ -135,15 +152,58 @@ class _HomePageState extends State<HomePage> {
         Map<String, dynamic> friendData = snapshot.data!.data()
             as Map<String, dynamic>; // get the user data as json
         String friendName = friendData['username'];
-
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundImage: NetworkImage(friendData['image_url']),
-            radius: 10,
+        friendName = friendName.toUpperCase();
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundImage: NetworkImage(friendData['image_url']),
+              radius: 30,
+            ),
+            title: Text(friendName,
+                style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                    )),
+            onTap: () => _navigateToChatScreen(friendId, friendName),
+            onLongPress: () => _navigatetoview(friendId),
           ),
-          title: Text(friendName),
-          onTap: () => _navigateToChatScreen(friendId, friendName),
-          onLongPress: () => _navigatetoview(friendId),
+        );
+      },
+    );
+  }
+
+  void _addfunction() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Center(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 20, 10, 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: cust_textfield(
+                        hint_text: 'Enter friend\'s email to be added',
+                        obscure_text: false,
+                        controller: _emailController,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: _addFriend,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              Lottie.asset('lib/assets/addFriends.json'),
+            ],
+          ),
         );
       },
     );
@@ -153,12 +213,13 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.black,
         title: Padding(
-          padding: EdgeInsets.fromLTRB(20, 0, 10, 0),
+          padding: const EdgeInsets.fromLTRB(20, 0, 10, 0),
           child: Text(
             'Kaburlu',
             style: Theme.of(context).textTheme.headlineLarge!.copyWith(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontFamily: 'Lexend',
                   fontWeight: FontWeight.w700,
                   fontStyle: FontStyle.italic,
@@ -168,77 +229,61 @@ class _HomePageState extends State<HomePage> {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle),
+            icon: const Icon(Icons.account_circle, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) =>
-                        Profile_Screen()), // Ensure you have a ProfileScreen
+                        const Profile_Screen()), // Ensure you have a ProfileScreen
               );
             },
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 20, 10, 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    // child: TextField(
-                    //   controller: _emailController,
-                    //   decoration: InputDecoration(
-                    //     hintText: 'Enter friend\'s email',
-                    //     border: OutlineInputBorder(
-                    //       borderRadius: BorderRadius.circular(10.0),
-                    //     ),
-                    //   ),
-                    // ),
-                    child: cust_textfield(
-                      hint_text: 'Enter friend\'s email',
-                      obscure_text: false,
-                      controller: _emailController,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.add),
-                    onPressed: _addFriend,
-                  ),
-                ],
+      body: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 5,
+          vertical: 20,
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                      .collection('users')
+                      .doc(_currentUser!.uid)
+                      .collection('friends')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text('No friends added yet'));
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    return ListView.builder(
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        return _buildFriendItem(snapshot.data!.docs[index]);
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore
-                    .collection('users')
-                    .doc(_currentUser!.uid)
-                    .collection('friends')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  return ListView.builder(
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      return _buildFriendItem(snapshot.data!.docs[index]);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.fromLTRB(0, 0, 10, 10),
         child: CustIcon(
-          ontap: _addFriend,
+          ontap: _addfunction,
           icon: Icons.add,
           width: 60,
           height: 60,

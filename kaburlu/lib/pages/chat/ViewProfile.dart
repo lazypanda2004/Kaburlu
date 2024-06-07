@@ -17,11 +17,9 @@ class _ViewprofileState extends State<Viewprofile> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _lastController = TextEditingController();
   final TextEditingController _createdController = TextEditingController();
-  String? _photo;
   String? email;
   DateTime? last_seen;
   late DateTime created_at;
-  File? _image;
 
   @override
   void initState() {
@@ -37,72 +35,143 @@ class _ViewprofileState extends State<Viewprofile> {
     _statusController.text = userDataMap['status'];
     email = userDataMap['email'];
     _emailController.text = userDataMap['email'];
-    //  created_at=userDataMap['createdAt'];
-    final Timestamp timestamp = userDataMap['lastSeen'] as Timestamp;
-    _lastController.text = timeago.format(timestamp.toDate()).toString();
-    final Timestamp timeestamp = userDataMap['createdAt'] as Timestamp;
-    _createdController.text = timeago.format(timeestamp.toDate()).toString();
-    _photo = await userDataMap['photo_url'];
-    print(_photo);
+    ;
+  }
 
-    //  _lastController.text = DateFormat('K:mm:ss').format(dateTime);
+  String truncateString(String input) {
+    if (input.length <= 10) {
+      return input;
+    } else {
+      return input.substring(0, 10);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
-        backgroundColor: Colors.blue,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: const Text('Profile', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundImage:
-                        _photo != null ? NetworkImage(_photo!) : null,
-                    //child: _photo == null ? Icon(Icons.camera_alt, size: 40) : null,
-                  ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _displayNameController,
-                decoration: InputDecoration(labelText: 'Display Name'),
-                readOnly: true,
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _statusController,
-                decoration: InputDecoration(labelText: 'Status'),
-                readOnly: true,
-              ),
-              SizedBox(height: 20),
-              TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(labelText: 'Email'),
-                  readOnly: true),
-              SizedBox(height: 20),
-              TextField(
-                  controller: _lastController,
-                  decoration: InputDecoration(labelText: 'Last seen'),
-                  readOnly: true),
-              SizedBox(height: 20),
-              TextField(
-                  controller: _createdController,
-                  decoration: InputDecoration(labelText: 'Joined'),
-                  readOnly: true),
-              SizedBox(height: 20),
-            ],
+          padding: const EdgeInsets.all(20),
+          child: StreamBuilder<DocumentSnapshot>(
+            stream:
+                _firestore.collection('users').doc(widget.userId).snapshots(),
+            builder: (context, snapshot) {
+              final mapData = snapshot.data!;
+              _lastController.text = snapshot.data!['lastSeen'];
+              _createdController.text = snapshot.data!['createdAt'];
+              _lastController.text =
+                  '${_lastController.text.substring(0, 10)} ${_lastController.text.substring(11, 16)}';
+              _createdController.text =
+                  _createdController.text.substring(0, 10);
+              bool imageExists = mapData['image_url'] != null;
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData) {
+                return const Text('No data found');
+              }
+              if (imageExists) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Column(
+                      children: [
+                        CircleAvatar(
+                          foregroundImage: NetworkImage(mapData['image_url']),
+                          radius: 60,
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _displayNameController,
+                      decoration:
+                          const InputDecoration(labelText: 'Display Name'),
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _statusController,
+                      decoration: const InputDecoration(labelText: 'Status'),
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                        readOnly: true),
+                    const SizedBox(height: 20),
+                    TextField(
+                        controller: _lastController,
+                        decoration:
+                            const InputDecoration(labelText: 'Last seen'),
+                        readOnly: true),
+                    const SizedBox(height: 20),
+                    TextField(
+                        controller: _createdController,
+                        decoration: const InputDecoration(labelText: 'Joined'),
+                        readOnly: true),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              } else {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const CircleAvatar(
+                      foregroundImage:
+                          AssetImage('lib/assets/profileimage.jpg'),
+                      radius: 60,
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    TextField(
+                      controller: _displayNameController,
+                      decoration:
+                          const InputDecoration(labelText: 'Display Name'),
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _statusController,
+                      decoration: const InputDecoration(labelText: 'Status'),
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                        readOnly: true),
+                    const SizedBox(height: 20),
+                    TextField(
+                        controller: _lastController,
+                        decoration:
+                            const InputDecoration(labelText: 'Last seen'),
+                        readOnly: true),
+                    const SizedBox(height: 20),
+                    TextField(
+                        controller: _createdController,
+                        decoration: const InputDecoration(labelText: 'Joined'),
+                        readOnly: true),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              }
+            },
           ),
         ),
       ),

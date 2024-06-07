@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class cust_textfield extends StatelessWidget {
+class ReadCusttextfield extends StatelessWidget {
   final TextEditingController? controller;
   final String hint_text;
   final bool obscure_text;
 
-  const cust_textfield({
+  const ReadCusttextfield({
     super.key,
     required this.hint_text,
     this.obscure_text = false,
@@ -17,17 +17,22 @@ class cust_textfield extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
       child: TextField(
+        style: TextStyle(color: Colors.white),
+        readOnly: true,
         controller: controller,
         obscureText: obscure_text,
         decoration: InputDecoration(
-          enabledBorder: OutlineInputBorder(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          enabledBorder: const OutlineInputBorder(
             borderSide: BorderSide(color: Colors.white),
           ),
           focusedBorder: OutlineInputBorder(
             borderSide: BorderSide(color: Colors.grey.shade400),
           ),
           hintText: hint_text,
-          fillColor: Colors.grey.shade200,
+          fillColor: Colors.black,
           filled: true,
         ),
       ),

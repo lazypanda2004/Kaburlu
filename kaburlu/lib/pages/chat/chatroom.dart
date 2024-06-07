@@ -26,11 +26,20 @@ class _ChatroomState extends State<Chatroom> {
   User? _currentUser;
   String? _editingMessageId;
   List<String> _smartReplies = [];
+  String lastSeen = '';
 
   @override
   void initState() {
     super.initState();
     _currentUser = _auth.currentUser;
+    _updateLastSeen();
+    _getLastSeen();
+  }
+
+  Future<void> _updateLastSeen() async {
+    await _firestore.collection('users').doc(_currentUser!.uid).update({
+      'lastSeen': DateTime.now().toIso8601String(),
+    });
   }
 
   @override
@@ -43,7 +52,9 @@ class _ChatroomState extends State<Chatroom> {
     final response = await _smartReply.suggestReplies();
     setState(
       () {
-        _smartReplies = response.suggestions;
+        for (var suggest in response.suggestions) {
+          _smartReplies.add(suggest);
+        }
       },
     );
   }
@@ -52,21 +63,37 @@ class _ChatroomState extends State<Chatroom> {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Container(
-          color: Colors.black,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _smartReplies.map((reply) {
-              return ListTile(
-                title: Text(reply),
-                onTap: () {
-                  Navigator.pop(context);
-                  _messageController.text = reply;
-                },
-              );
-            }).toList(),
-          ),
-        );
+        if (_smartReplies.isNotEmpty) {
+          return Container(
+            color: Colors.black,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: _smartReplies.map((reply) {
+                return ListTile(
+                  title:
+                      Text(reply, style: const TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _messageController.text = reply;
+                  },
+                );
+              }).toList(),
+            ),
+          );
+        } else {
+          return Container(
+            color: Colors.black,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: Text("No Smart replies are available",
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        }
       },
     );
   }
@@ -122,7 +149,7 @@ class _ChatroomState extends State<Chatroom> {
     _messageController.clear();
   }
 
-  Future<void> _deleteMessage(String messageId) async {
+  Future<void> _deleteMessageForMe(String messageId) async {
     DocumentReference messageRef = _firestore
         .collection('chats')
         .doc(widget.chatId)
@@ -133,6 +160,31 @@ class _ChatroomState extends State<Chatroom> {
     if (!deletedFor.contains(_currentUser!.uid)) {
       deletedFor.add(_currentUser!.uid);
       await messageRef.update({'deletedFor': deletedFor});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Message deleted for you')));
+      }
+    }
+  }
+
+  Future<void> _deleteMessageForEveryone(String messageId) async {
+    DocumentReference messageRef = _firestore
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .doc(messageId);
+    DocumentSnapshot messageSnapshot = await messageRef.get();
+    List<dynamic> deletedFor = messageSnapshot['deletedFor'] ?? [];
+    if (!deletedFor.contains(_currentUser!.uid)) {
+      deletedFor.add(_currentUser!.uid);
+    }
+    if (!deletedFor.contains(widget.recipientId)) {
+      deletedFor.add(widget.recipientId);
+    }
+    await messageRef.update({'deletedFor': deletedFor});
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Message deleted for everyone')));
     }
   }
 
@@ -169,6 +221,8 @@ class _ChatroomState extends State<Chatroom> {
           child: Text(
             data['message'],
             style: TextStyle(
+                fontFamily: 'Montserrat',
+                fontSize: 16.0,
                 color: isSentByCurrentUser ? Colors.white : Colors.black),
           ),
         ),
@@ -187,43 +241,57 @@ class _ChatroomState extends State<Chatroom> {
     String sentUser = messageSnapshot['senderUID'];
 
     bool isCurrentUser = sentUser == _currentUser!.uid ? true : false;
-    List<dynamic> deletedFor = messageSnapshot['deletedFor'] ?? [];
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Wrap(
-          children: [
-            if (isCurrentUser)
-              // Check if the message was sent by the current user
+    if (mounted) {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) {
+          return Wrap(
+            children: [
+              if (isCurrentUser)
+                ListTile(
+                  title: Text(messageSnapshot['read'] ? 'Read' : 'Not Read'),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              if (isCurrentUser)
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: const Text('Edit'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _startEditingMessage(messageId, message);
+                  },
+                ),
               ListTile(
-                title: Text(messageSnapshot['read'] ? 'Read' : 'Not Read'),
-                // Get the status of the message (not read or read)
+                leading: const Icon(Icons.delete),
+                title: const Text('Delete For Me'),
                 onTap: () {
                   Navigator.pop(context);
-                  // Handle status change (if needed)
+                  _deleteMessageForMe(messageId);
                 },
               ),
-            if (isCurrentUser)
-              ListTile(
-                leading: Icon(Icons.edit),
-                title: Text('Edit'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _startEditingMessage(messageId, message);
-                },
-              ),
-            ListTile(
-              leading: Icon(Icons.delete),
-              title: Text('Delete'),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteMessage(messageId);
-              },
-            )
-          ],
-        );
-      },
-    );
+              if (isCurrentUser)
+                ListTile(
+                  leading: const Icon(Icons.delete),
+                  title: const Text('Delete For Everyone'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteMessageForEveryone(messageId);
+                  },
+                ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  Future<void> _getLastSeen() async {
+    DocumentSnapshot snapshot =
+        await _firestore.collection('users').doc(widget.recipientId).get();
+    Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+    lastSeen = data['lastSeen'] ?? '';
   }
 
   String? imageurl() {
@@ -239,10 +307,67 @@ class _ChatroomState extends State<Chatroom> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: CircleAvatar(
-          backgroundImage: NetworkImage(imageurl()!),
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
-        title: Text(widget.recipientName),
+        title: StreamBuilder<DocumentSnapshot>(
+          stream: _firestore
+              .collection('users')
+              .doc(widget.recipientId)
+              .snapshots(),
+          builder: (context, snapshot) {
+            _updateLastSeen();
+            final mapData = snapshot.data!.data() as Map<String, dynamic>;
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CupertinoActivityIndicator();
+            }
+            if (snapshot.hasError) {
+              return const Text('Error');
+            }
+            if (!snapshot.hasData) {
+              return const Text('Error');
+            }
+            bool imageExists = mapData['image_url'] != null;
+            if (imageExists) {
+              return Row(
+                children: [
+                  CircleAvatar(
+                    foregroundImage:
+                        NetworkImage(mapData['image_url'] as String),
+                    radius: 20,
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Text(
+                    widget.recipientName,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              );
+            } else {
+              return Row(
+                children: [
+                  const CircleAvatar(
+                    foregroundImage: AssetImage('lib/assets/profileimage.jpg'),
+                    radius: 20,
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Text(
+                    widget.recipientName,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              );
+            }
+          },
+        ),
       ),
       body: Column(
         children: [
@@ -262,17 +387,13 @@ class _ChatroomState extends State<Chatroom> {
                 for (var message in messages) {
                   final messageText = message['message'];
                   final messageSenderId = message['senderUID'];
-                  final Timestamp? timestamp = message['timestamp'];
-
                   if (messageSenderId == _currentUser!.uid &&
                       timestamp != null) {
                     _smartReply.addMessageToConversationFromLocalUser(
-                        messageText, timestamp.millisecondsSinceEpoch);
+                        messageText, int.parse(timestamp));
                   } else {
                     if (timestamp != null) {
                       _smartReply.addMessageToConversationFromRemoteUser(
-                          messageText,
-                          timestamp.microsecondsSinceEpoch,
                           messageSenderId);
                     }
                   }
@@ -289,7 +410,7 @@ class _ChatroomState extends State<Chatroom> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
             child: Row(
               children: [
                 Expanded(
