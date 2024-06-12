@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_smart_reply/google_mlkit_smart_reply.dart';
+import 'package:intl/intl.dart'; // Add this import for date formatting
 import 'package:kaburlu/components/textfield/custom_textfield.dart';
 
 class Chatroom extends StatefulWidget {
@@ -28,7 +29,6 @@ class _ChatroomState extends State<Chatroom> {
   List<String> _smartReplies = [];
   String lastSeen = '';
 
-
   @override
   void initState() {
     super.initState();
@@ -51,13 +51,11 @@ class _ChatroomState extends State<Chatroom> {
 
   void _generateSmartReplies() async {
     final response = await _smartReply.suggestReplies();
-    setState(
-      () {
-        for (var suggest in response.suggestions) {
-          _smartReplies.add(suggest);
-        }
-      },
-    );
+    setState(() {
+      for (var suggest in response.suggestions) {
+        _smartReplies.add(suggest);
+      }
+    });
   }
 
   void _showSmartReplies() {
@@ -207,7 +205,7 @@ class _ChatroomState extends State<Chatroom> {
     });
   }
 
-  Widget _buildMessageItem(DocumentSnapshot document) {
+  Widget _buildMessageItem(DocumentSnapshot document, DateTime? previousDate) {
     Map<String, dynamic> data = document.data() as Map<String, dynamic>;
     bool isSentByCurrentUser = data['senderUID'] == _currentUser!.uid;
     bool isDeletedForCurrentUser =
@@ -217,28 +215,48 @@ class _ChatroomState extends State<Chatroom> {
       return Container(); // Don't display this message
     }
 
-    return GestureDetector(
-      onLongPress: () =>
-          _showMessageOptions(context, document.id, data['message']),
-      child: Align(
-        alignment:
-            isSentByCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
-          padding: const EdgeInsets.all(10.0),
-          decoration: BoxDecoration(
-            color: isSentByCurrentUser ? Colors.black : Colors.grey[300],
-            borderRadius: BorderRadius.circular(8.0),
+    DateTime messageDate = (data['timestamp'] as Timestamp).toDate();
+    bool showDateDivider = previousDate == null ||
+        messageDate.year != previousDate.year ||
+        messageDate.month != previousDate.month ||
+        messageDate.day != previousDate.day;
+
+    return Column(
+      children: [
+        if (showDateDivider)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10.0),
+            child: Text(
+              DateFormat.yMMMd().format(messageDate),
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
-          child: Text(
-            data['message'],
-            style: TextStyle(
-                fontFamily: 'Montserrat',
-                fontSize: 16.0,
-                color: isSentByCurrentUser ? Colors.white : Colors.black),
+        GestureDetector(
+          onLongPress: () =>
+              _showMessageOptions(context, document.id, data['message']),
+          child: Align(
+            alignment: isSentByCurrentUser
+                ? Alignment.centerRight
+                : Alignment.centerLeft,
+            child: Container(
+              margin:
+                  const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
+              padding: const EdgeInsets.all(10.0),
+              decoration: BoxDecoration(
+                color: isSentByCurrentUser ? Colors.black : Colors.grey[300],
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Text(
+                data['message'],
+                style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontSize: 16.0,
+                    color: isSentByCurrentUser ? Colors.white : Colors.black),
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -266,32 +284,35 @@ class _ChatroomState extends State<Chatroom> {
                     Navigator.pop(context);
                   },
                 ),
-              if (isCurrentUser)
-                ListTile(
-                  leading: const Icon(Icons.edit),
-                  title: const Text('Edit'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _startEditingMessage(messageId, message);
-                  },
-                ),
               ListTile(
-                leading: const Icon(Icons.delete),
-                title: const Text('Delete For Me'),
+                title: const Text('Delete for me'),
                 onTap: () {
-                  Navigator.pop(context);
                   _deleteMessageForMe(messageId);
+                  Navigator.pop(context);
                 },
               ),
               if (isCurrentUser)
                 ListTile(
-                  leading: const Icon(Icons.delete),
-                  title: const Text('Delete For Everyone'),
+                  title: const Text('Delete for everyone'),
                   onTap: () {
-                    Navigator.pop(context);
                     _deleteMessageForEveryone(messageId);
+                    Navigator.pop(context);
                   },
                 ),
+              if (isCurrentUser)
+                ListTile(
+                  title: const Text('Edit message'),
+                  onTap: () {
+                    _startEditingMessage(messageId, message);
+                    Navigator.pop(context);
+                  },
+                ),
+              ListTile(
+                title: const Text('Cancel'),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
             ],
           );
         },
@@ -299,24 +320,19 @@ class _ChatroomState extends State<Chatroom> {
     }
   }
 
-  Future<void> _getLastSeen() async {
-    DocumentSnapshot snapshot =
+  void _getLastSeen() async {
+    final doc =
         await _firestore.collection('users').doc(widget.recipientId).get();
-    Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-    lastSeen = data['lastSeen'] ?? '';
-  }
-
-  String? imageurl() {
-    return _firestore
-        .collection('users')
-        .doc(widget.recipientId)
-        .get()
-        .then((value) => value.data()!['image_url'])
-        .toString();
+    if (mounted) {
+      setState(() {
+        lastSeen = doc['lastSeen'];
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -340,6 +356,7 @@ class _ChatroomState extends State<Chatroom> {
             }
             _updateLastSeen();
             final mapData = snapshot.data!.data() as Map<String, dynamic>;
+            var reclastSeen = DateTime.parse(mapData['lastSeen']);
             bool imageExists = mapData['image_url'] != null;
             if (imageExists) {
               return Row(
@@ -372,6 +389,13 @@ class _ChatroomState extends State<Chatroom> {
                     widget.recipientName,
                     style: const TextStyle(color: Colors.white),
                   ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Text(
+                    'last seen: ${reclastSeen.toIso8601String()}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12.0),
+                  ),
                 ],
               );
             }
@@ -389,38 +413,21 @@ class _ChatroomState extends State<Chatroom> {
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CupertinoActivityIndicator());
-                }
                 if (!snapshot.hasData) {
-                  return const Text("No messages yet");
+                  return const Center(child: CircularProgressIndicator());
                 }
-                final messages = snapshot.data!.docs;
-                // for (var message in messages) {
-                //   final messageText = message['message'];
-                //   final messageSenderId = message['senderUID'];
-
-                //   final Timestamp? timestamp = message['timestamp'];
-                //   if (messageSenderId == _currentUser!.uid &&
-                //       timestamp != null) {
-                //     _smartReply.addMessageToConversationFromLocalUser(
-                //         messageText, timestamp.millisecondsSinceEpoch);
-                //   } else {
-                //     if (timestamp != null) {
-                //       _smartReply.addMessageToConversationFromRemoteUser(
-                //           messageText,
-                //           timestamp.microsecondsSinceEpoch,
-                //           messageSenderId);
-                //     }
-                //   }
-                // }
-                // _generateSmartReplies();
+                var messages = snapshot.data!.docs;
+                DateTime? previousDate;
                 return ListView.builder(
                   reverse: true,
-                  itemCount: snapshot.data!.docs.length,
+                  itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    _updateReadStatus(snapshot.data!.docs[index]);
-                    return _buildMessageItem(snapshot.data!.docs[index]);
+                    var message = messages[index];
+                    var messageDate =
+                        (message['timestamp'] as Timestamp).toDate();
+                    var messageItem = _buildMessageItem(message, previousDate);
+                    previousDate = messageDate;
+                    return messageItem;
                   },
                 );
               },
