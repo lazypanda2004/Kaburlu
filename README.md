@@ -40,6 +40,7 @@ flutter run
 - **Message Read Status:** See if your messages have been read by the recipient.
 - **Message Delete:** Delete sent messages either for yourself or both users.
 - **Message Edit:** Edit sent messages.
+- **Media Sharing,Read status,Delete:** Images, Video can be shared and corresponding Read status,Delete for me,Delete for everyone are available .
 - **Smart Reply Generation:** Generate intelligent replies based on received messages using on-device ML.
 
 ## Tech Stack
