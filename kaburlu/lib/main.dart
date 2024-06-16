@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kaburlu/pages/Auth/LoginorRegisterpage.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:kaburlu/pages/chat/home_page.dart';
+import 'package:kaburlu/pages/chat/binaryUser/home_page.dart';
 import 'package:kaburlu/pages/Auth/registerorlogin.dart';
 import 'package:kaburlu/pages/Auth/spalsh_screen.dart';
 import 'package:kaburlu/pages/Auth/welcome.dart';

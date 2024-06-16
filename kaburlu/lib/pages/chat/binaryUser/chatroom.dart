@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:kaburlu/components/videoPlayer.dart';
 import 'package:video_player/video_player.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -243,36 +244,55 @@ class _ChatroomState extends State<Chatroom> {
     });
   }
 
-  void showMediaOptions(BuildContext context, String messageId) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Wrap(
-          children: [
-            ListTile(
-              title: const Text('Delete for me'),
-              onTap: () {
-                _deleteMessageForMe(messageId);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: const Text('Delete for everyone'),
-              onTap: () {
-                _deleteMessageForEveryone(messageId);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: const Text('Cancel'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        );
-      },
-    );
+  void showMediaOptions(BuildContext context, String messageId) async {
+    DocumentReference messageRef = _firestore
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .doc(messageId);
+    DocumentSnapshot messageSnapshot = await messageRef.get();
+    String sentUser = messageSnapshot['senderUID'];
+
+    bool isCurrentUser = sentUser == _currentUser!.uid ? true : false;
+    if (mounted) {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) {
+          return Wrap(
+            children: [
+              if (isCurrentUser)
+                ListTile(
+                  title: Text(messageSnapshot['read'] ? 'Read' : 'Not Read'),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ListTile(
+                title: const Text('Delete for me'),
+                onTap: () {
+                  _deleteMessageForMe(messageId);
+                  Navigator.pop(context);
+                },
+              ),
+              if (isCurrentUser)
+                ListTile(
+                  title: const Text('Delete for everyone'),
+                  onTap: () {
+                    _deleteMessageForEveryone(messageId);
+                    Navigator.pop(context);
+                  },
+                ),
+              ListTile(
+                title: const Text('Cancel'),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   Widget _buildMessageItem(DocumentSnapshot document, DateTime? previousDate) {
@@ -293,7 +313,9 @@ class _ChatroomState extends State<Chatroom> {
 
     Widget messageContent;
     if (data.containsKey('imageUrl')) {
-      messageContent = Image.network(data['imageUrl']);
+      messageContent = GestureDetector(
+          onLongPress: () => showMediaOptions(context, document.id),
+          child: Image.network(data['imageUrl']));
     } else if (data.containsKey('videoUrl')) {
       messageContent = VideoWidget(
         videoUrl: data['videoUrl'],
@@ -545,73 +567,5 @@ class _ChatroomState extends State<Chatroom> {
         ],
       ),
     );
-  }
-}
-
-class VideoWidget extends StatefulWidget {
-  final String videoUrl;
-  final Function showMediaOptions;
-  final String id;
-  const VideoWidget(
-      {super.key,
-      required this.videoUrl,
-      required this.showMediaOptions,
-      required this.id});
-
-  @override
-  State<VideoWidget> createState() => _VideoWidgetState();
-}
-
-class _VideoWidgetState extends State<VideoWidget> {
-  late VideoPlayerController _videoController;
-
-  @override
-  void initState() {
-    super.initState();
-    _videoController =
-        VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
-          ..initialize().then((_) {
-            _videoController.play();
-            _videoController.setLooping(true);
-            setState(() {});
-          });
-  }
-
-  @override
-  void dispose() {
-    _videoController.pause();
-    _videoController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: () => widget.showMediaOptions(context, widget.id),
-      child: Column(children: [
-        Center(
-          child: _videoController.value.isInitialized
-              ? AspectRatio(
-                  aspectRatio: _videoController.value.aspectRatio,
-                  child: VideoPlayer(_videoController),
-                )
-              : Container(),
-        ),
-        IconButton(
-          icon: _videoController.value.isPlaying
-              ? const Icon(Icons.pause, color: Colors.white)
-              : const Icon(Icons.play_arrow, color: Colors.white),
-          onPressed: () {
-            setState(() {
-              if (_videoController.value.isPlaying) {
-                _videoController.pause();
-              } else {
-                _videoController.play();
-              }
-            });
-          },
-        ),
-      ]),
-    ); // Placeholder for video widget
   }
 }

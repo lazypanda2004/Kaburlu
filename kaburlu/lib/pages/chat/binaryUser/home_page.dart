@@ -5,8 +5,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:kaburlu/components/buttons/cust_icon.dart';
 import 'package:kaburlu/components/textfield/custom_textfield.dart';
-import 'package:kaburlu/pages/chat/ViewProfile.dart';
-import 'package:kaburlu/pages/chat/chatroom.dart';
+import 'package:kaburlu/pages/chat/binaryUser/ViewProfile.dart';
+import 'package:kaburlu/pages/chat/binaryUser/chatroom.dart';
+import 'package:kaburlu/pages/chat/groupUsers/groupCreate.dart';
 import 'package:kaburlu/pages/profile/profile.dart';
 import 'package:lottie/lottie.dart';
 import 'package:kaburlu/pages/Auth/welcome.dart';
@@ -212,6 +213,16 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(
                 height: 20,
               ),
+              IconButton(
+                      icon: const Icon(Icons.group_add),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => CreateGroupScreen()),
+                        );
+                      },
+                    ),
               Lottie.asset('lib/assets/addFriends.json'),
             ],
           ),
