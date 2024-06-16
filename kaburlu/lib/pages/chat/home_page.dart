@@ -9,6 +9,7 @@ import 'package:kaburlu/pages/chat/ViewProfile.dart';
 import 'package:kaburlu/pages/chat/chatroom.dart';
 import 'package:kaburlu/pages/profile/profile.dart';
 import 'package:lottie/lottie.dart';
+import 'package:kaburlu/pages/Auth/welcome.dart';
 
 class HomePage extends StatefulWidget {
   static String id = 'home_page';
@@ -24,12 +25,12 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _emailController = TextEditingController();
   User? _currentUser;
 
-  void setupPushNotifications() async{
-      final fcm = FirebaseMessaging.instance;
-      await fcm.requestPermission();
-      final token = await fcm.getToken();
-       // can store this token in the database
-      print('Token: $token');
+  void setupPushNotifications() async {
+    final fcm = FirebaseMessaging.instance;
+    await fcm.requestPermission();
+    final token = await fcm.getToken();
+    // can store this token in the database
+    print('Token: $token');
   }
 
   @override
@@ -38,7 +39,6 @@ class _HomePageState extends State<HomePage> {
     _currentUser = _auth.currentUser;
     _updateLastSeen();
     setupPushNotifications(); // we don't want to turn init to async so define another function which is async and use it here.
-
   }
 
   void signout() async {
@@ -239,6 +239,22 @@ class _HomePageState extends State<HomePage> {
         ),
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            style: IconButton.styleFrom(
+              foregroundColor: Colors.white,
+            ),
+            color: Colors.black,
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (mounted) {
+                Navigator.pushNamed(context, WelcomeScreen.id);
+              }
+            },
+            icon: const Icon(
+              Icons.exit_to_app,
+              color: Colors.white,
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.account_circle, color: Colors.white),
             onPressed: () {
