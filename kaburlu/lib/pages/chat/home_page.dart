@@ -9,6 +9,7 @@ import 'package:kaburlu/pages/chat/ViewProfile.dart';
 import 'package:kaburlu/pages/chat/chatroom.dart';
 import 'package:kaburlu/pages/profile/profile.dart';
 import 'package:lottie/lottie.dart';
+import 'package:kaburlu/pages/Auth/welcome.dart';
 
 class HomePage extends StatefulWidget {
   static String id = 'home_page';
@@ -238,6 +239,22 @@ class _HomePageState extends State<HomePage> {
         ),
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            style: IconButton.styleFrom(
+              foregroundColor: Colors.white,
+            ),
+            color: Colors.black,
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (mounted) {
+                Navigator.pushNamed(context, WelcomeScreen.id);
+              }
+            },
+            icon: const Icon(
+              Icons.exit_to_app,
+              color: Colors.white,
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.account_circle, color: Colors.white),
             onPressed: () {
