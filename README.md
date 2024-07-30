@@ -50,3 +50,45 @@ flutter run
 - **Firestore:** For storing chat messages and user data.
 - **MLKit (TensorFlow Lite):** For generating smart replies using on-device machine learning.
 
+# Media Assets
+https://github.com/user-attachments/assets/e7b174b5-b5de-4c5a-b89b-fdeef6314c85
+
+https://github.com/user-attachments/assets/55e8cfc0-ed5d-4010-a627-f832328e04ce
+
+https://github.com/user-attachments/assets/255cb89f-60db-40f2-ab74-424597b21e97
+
+
+
+https://github.com/user-attachments/assets/0da65d37-168f-4ac0-b9a4-9a441d28797a
+
+<div style="display: flex; flex-wrap: wrap;">
+
+<div style="flex: 1; margin: 5px;">
+<img src="https://github.com/user-attachments/assets/95af9d1f-97ba-4dd4-82b1-30943e5648c2" width="300" />
+</div>
+
+
+<div style="flex: 1; margin: 5px;">
+<img src="https://github.com/user-attachments/assets/e13fd159-c908-4cca-ab77-dfc8b0af1aa5" width="300" />
+</div>
+
+<div style="flex: 1; margin: 5px;">
+<img src="https://github.com/user-attachments/assets/17bae01a-0582-404b-ae9f-fa4bdc0b53c7" width="300" />
+</div>
+
+<div style="flex: 1; margin: 5px;">
+<img src="https://github.com/user-attachments/assets/ca299c73-f570-405e-8ffd-29b5586072c9" width="300" />
+</div>
+
+<div style="flex: 1; margin: 5px;">
+<img src="https://github.com/user-attachments/assets/c85083a3-2e76-43dd-9ebb-725cb2f72c07" width="300" />
+</div>
+
+<div style="flex: 1; margin: 5px;">
+<img src="https://github.com/user-attachments/assets/2a63f0d8-45f2-445e-962b-a2f14d17884c" width="300" />
+</div>
+
+</div>
+
+  
+
