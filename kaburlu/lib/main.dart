@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
         WelcomeScreen.id: (context) => const WelcomeScreen(),
         LoginorRegister.id: (context) => const LoginorRegister(),
         Registerorlogin.id: (context) => const Registerorlogin(),
-        HomePage.id: (context) => HomePage(),
+        HomePage.id: (context) => const HomePage(),
       },
       home: StreamBuilder(
         stream: FirebaseAuth.instance.authStateChanges(),
@@ -42,8 +42,7 @@ class MyApp extends StatelessWidget {
           else if (snapshot.hasData) {
             return HomePage();
           }
-            return const WelcomeScreen();
-    
+          return const WelcomeScreen();
         },
       ),
     );

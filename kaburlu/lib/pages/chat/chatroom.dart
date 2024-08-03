@@ -126,7 +126,10 @@ class _ChatroomState extends State<Chatroom> {
     } else {
       messageData['message'] = message;
     }
-
+    // showDialog(
+    //   context: context,
+    //   builder: (context) => const CupertinoActivityIndicator(),
+    // );
     if (_editingMessageId != null) {
       // Update the existing message
       await _firestore
@@ -154,7 +157,9 @@ class _ChatroomState extends State<Chatroom> {
           message.isNotEmpty ? message : (imageUrl != null ? 'Image' : 'Video'),
       'lastMessageTimestamp': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
-
+    // if (mounted) {
+    //   Navigator.pop(context);
+    // }
     _messageController.clear();
   }
 
@@ -299,7 +304,7 @@ class _ChatroomState extends State<Chatroom> {
         videoUrl: data['videoUrl'],
         showMediaOptions: showMediaOptions,
         id: document.id,
-      ); // You'll need to create a VideoWidget to handle video playback
+      );
     } else {
       messageContent = Text(
         data['message'],
@@ -410,6 +415,11 @@ class _ChatroomState extends State<Chatroom> {
     lastSeen = data['lastSeen'] ?? '';
   }
 
+  DateTime getYesterdaysDate(DateTime msgdate) {
+    DateTime yesterday = msgdate.subtract(const Duration(days: 1));
+    return yesterday;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -495,18 +505,30 @@ class _ChatroomState extends State<Chatroom> {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
                 var messages = snapshot.data!.docs;
                 DateTime? previousDate;
                 return ListView.builder(
                   reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
+                    var messageItem = Container() as Widget;
                     _updateReadStatus(snapshot.data!.docs[index]);
                     var message = messages[index];
+                    if (message['timestamp'] == null) {
+                      return Container();
+                    }
                     var messageDate =
-                        (message['timestamp'] as Timestamp).toDate();
-                    var messageItem = _buildMessageItem(message, previousDate);
-                    previousDate = messageDate;
+                        (message['timestamp']! as Timestamp).toDate();
+
+                    if (previousDate != null && messageDate != previousDate) {
+                      messageItem = _buildMessageItem(message, previousDate);
+                      previousDate = messageDate;
+                    } else {
+                      messageItem = _buildMessageItem(message, messageDate);
+                    }
                     return messageItem;
                   },
                 );

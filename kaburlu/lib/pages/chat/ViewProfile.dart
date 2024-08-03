@@ -35,7 +35,6 @@ class _ViewprofileState extends State<Viewprofile> {
     _statusController.text = userDataMap['status'];
     email = userDataMap['email'];
     _emailController.text = userDataMap['email'];
-    ;
   }
 
   String truncateString(String input) {

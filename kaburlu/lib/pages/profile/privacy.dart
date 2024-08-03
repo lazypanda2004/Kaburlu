@@ -19,7 +19,7 @@ class Privacy extends StatelessWidget {
       ),
       body: Center(
         child: Text(
-          'Mundhu aithe migathavi complete chey ra time ledhu',
+          'Kaburlu Privacy Policy',
           style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
         ),
       ),
